@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Geolocation API Example</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <style>
+    .response-container {
+      margin-top: 20px;
+    }
+    .response-item {
+    padding: 5px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    }
+    .band-1 {
+        background-color: #e4e131;
+    }
+    .band-3 {
+    background-color: #73e02f;
+    }
+    .band-7 {
+    background-color: #31dee4;
+    }
+    .band-8 {
+    background-color: #e45e31;
+    }
+    .band-38 {
+    background-color: #694539;
+    }
+    .band-40 {
+    background-color: #866ad9;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Geolocation API Example</h1>
+    
+    <div class="row">
+      <form id="geolocationForm" class="col s12 m4 l3" onsubmit="makeGeolocationRequest(event)">
+        <div class="row">
+          <div class="input-field col s12">
+            <input type="text" id="apiKey" required>
+            <label for="apiKey">API Key</label>
+          </div>
+        </div>
+        
+        <div class="row">
+            <div class="input-field col s12">
+              <input type="text" id="eNode" required>
+              <label for="eNode">eNode</label>
+            </div>
+          </div>
+  
+        <div class="row">
+            <div class="input-field col s12">
+              <select id="carrier" required>
+                <option value="6">LC</option>
+                <option value="3">KS</option>
+                <option value="1">VF</option>
+              </select>
+              <label for="carrier">Carrier</label>
+            </div>
+        </div>
+        
+        <div class="row">
+          <div class="input-field col s12">
+            <p>Select Band(s):</p>
+            <p>
+              <label>
+                <input type="checkbox" id="band1" value="1" />
+                <span>1</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="band3" value="3" />
+                <span>3</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="band7" value="7" />
+                <span>7</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="band8" value="8" />
+                <span>8</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="band38" value="38" />
+                <span>38</span>
+              </label>
+            </p>
+            <p>
+              <label>
+                <input type="checkbox" id="band40" value="40" />
+                <span>40</span>
+              </label>
+            </p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="input-field col s12">
+            <button class="btn waves-effect waves-light" type="submit">Submit</button>
+          </div>
+        </div>
+      </form>
+    
+
+    <div class="response-container col s12 m8 l9">
+      <pre id="response"></pre>
+    </div>
+  </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="./js/script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('select');
+      var instances = M.FormSelect.init(elems);
+    });
+  </script>
+</body>
+</html>
