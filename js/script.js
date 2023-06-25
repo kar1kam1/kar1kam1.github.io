@@ -35,6 +35,10 @@ function makeGeolocationRequest(event) {
   for (var i = 0; i < checkboxes.length; i++) {
     bands.push(checkboxes[i].value);
   }
+  
+  var requestDiv = document.createElement('div');
+  requestDiv.classList.add('request-group');
+
 
   for (let band of bands){
     for (let shortCID of shortCids[carriers[carrier]][band]){
@@ -67,16 +71,16 @@ function makeGeolocationRequest(event) {
         })
         .then(function(responseData) {
           // Process the response data here
-          //console.log(responseData);
-          var responseElement = document.getElementById("response");
-          var responseContent = `${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}`;
-
-          responseElement.innerHTML += `<div class="response-item ${bandClass[band]}">${responseContent}</div>`;
+          var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
+          requestDiv.innerHTML += nodeContent;
           })
         .catch(function(error) {
           // Handle any errors that occurred during the request
           console.log('Error:', error.message);
         });
-    }  
+    }
   }
+  var responseElement = document.getElementById("response");
+  responseElement.appendChild(requestDiv);
+
 }
