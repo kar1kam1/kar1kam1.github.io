@@ -70,51 +70,116 @@ async function get_lte_point(url, carrier, cellId, mobileNetworkCode){
     console.log('Error:', error.message);
   }  
 }
-  
+
+async function get_wcdma_point(url, carrier, cellId, mobileNetworkCode){
+  try{
+    let response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            "homeMobileCountryCode": 255,
+            "radioType": "wcdma",
+            "carrier": carrier,
+            "considerIp": false,
+            "cellTowers": [
+              {
+                "cellId": cellId,
+                "mobileCountryCode": 255,
+                "mobileNetworkCode": mobileNetworkCode
+              }
+            ]
+          })
+        })
+    if (response.status == 200) {
+      let json = await response.json();
+      //console.log(json)
+      return json
+    }
+  } catch(error) {
+    console.log('Error:', error.message);
+  }  
+}
+
+
 async function makeGeolocationRequest(event) {
   event.preventDefault();
   var apiKey = document.getElementById("apiKey").value;
   var carrier = document.getElementById("carrier").value;
-  var eNode = document.getElementById("eNode").value;
+  var eNode = document.getElementById("eNode").value.trim();
   var checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+  var radioType = document.querySelector('input[type="radio"]:checked').value;
   var url = 'https://www.googleapis.com/geolocation/v1/geolocate?key=' + apiKey;
 
   const band_points = {};
   //let G = [];
   const AVG = []
-  var bands = [];
-  for (var i = 0; i < checkboxes.length; i++) {
-    bands.push(checkboxes[i].value);
-  }
   
   var requestDiv = document.createElement('div');
   requestDiv.classList.add('request-group');
 
-
-  for (let band of bands){
-    if (!(band in band_points)){
-      band_points[band] = []
+  //console.log(radioType)
+  if (radioType == 'lte'){
+    var bands = [];
+    for (var i = 0; i < checkboxes.length; i++) {
+      bands.push(checkboxes[i].value);
     }
-    for (let shortCID of shortCids[carriers[carrier]][band]){
-      try {
-      const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
-        band_points[band].push(responseData.location);
-        AVG.push(responseData.location);
+  
 
-        var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
-        requestDiv.innerHTML += nodeContent;
-      } catch (error){
-        console.log('Error:', error.message);
+    for (let band of bands){
+      if (!(band in band_points)){
+        band_points[band] = []
+      }
+      for (let shortCID of shortCids[carriers[carrier]][band]){
+        try {
+        const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
+          band_points[band].push(responseData.location);
+          AVG.push(responseData.location);
+
+          var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
+          requestDiv.innerHTML += nodeContent;
+        } catch (error){
+          console.log('Error:', error.message);
+        }
       }
     }
-  }
-  let averageLocationPoint = average(AVG)
-  var averageLocation = `<div class="response-item average"> Average Location: <a href="https://www.google.com/maps/place/${averageLocationPoint}">${averageLocationPoint}</a> </div>`;
-  requestDiv.innerHTML += averageLocation;
+    let averageLocationPoint = average(AVG)
+    var averageLocation = `<div class="response-item average"> Average Location: <a href="https://www.google.com/maps/place/${averageLocationPoint}">${averageLocationPoint}</a> </div>`;
+    requestDiv.innerHTML += averageLocation;
 
-  var responseElement = document.getElementById("response");
-  responseElement.appendChild(requestDiv);
+    var responseElement = document.getElementById("response");
+    responseElement.appendChild(requestDiv);
+  }  
   
+  if (radioType == 'wcdma'){
+    //console.log(radioType)
+    var rncID = document.getElementById("rnc_lac").value.trim();
+
+    if (carrier == '1'){
+      //console.log(radioType, carrier)
+
+      for (let sector = 1; sector <= 9; sector++){
+        let CID = eNode + sector;
+        //console.log(parseInt(rncID*65536 + parseInt(CID)), CID, rncID)
+        try {
+          const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
+            AVG.push(responseData.location);
+  
+            var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
+            requestDiv.innerHTML += nodeContent;
+          } catch (error){
+            console.log('Error:', error.message);
+          }
+      }  
+    }
+    let averageLocationPoint = average(AVG)
+    var averageLocation = `<div class="response-item average"> Average Location: <a href="https://www.google.com/maps/place/${averageLocationPoint}">${averageLocationPoint}</a> </div>`;
+    requestDiv.innerHTML += averageLocation;
+
+    var responseElement = document.getElementById("response");
+    responseElement.appendChild(requestDiv);
+  }
   //console.log(band_points)
   //console.log(AVG)
   //console.log(average(AVG))

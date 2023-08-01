@@ -4,6 +4,10 @@
   <title>Geolocation API Example</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <style>
+    .radio_label{
+      display: inline-block; 
+      margin-right: 20px;
+    }
     .response-container {
       margin-top: 20px;
     }
@@ -27,7 +31,7 @@
     .band-7 {
     background-color: #31dee4;
     }
-    .band-8 {
+    .band-8, .wcdma_vf{
     background-color: #e45e31;
     }
     .band-38 {
@@ -39,7 +43,6 @@
     .average {
     background-color: #fcfcfc;
     }
-
   </style>
 </head>
 <body>
@@ -60,8 +63,15 @@
               <input type="text" id="eNode" required>
               <label for="eNode">eNode</label>
             </div>
+        </div>
+        
+        <div class="row">
+          <div class="input-field col s12">
+            <input type="text" id="rnc_lac">
+            <label for="rnc_lac">RNC-ID for 3G, LAC for 2G</label>
           </div>
-  
+        </div>
+
         <div class="row">
             <div class="input-field col s12">
               <select id="carrier" required>
@@ -72,7 +82,22 @@
               <label for="carrier">Carrier</label>
             </div>
         </div>
-        
+
+        <div>
+            <label class="radio_label">
+              <input name="radioType" type="radio" value="lte" checked="checked"/>
+              <span>4G</span>
+            </label>
+            <label class="radio_label">
+              <input name="radioType" type="radio" value="wcdma"/>
+              <span>3G</span>
+            </label>
+            <label class="radio_label">
+              <input name="radioType" type="radio" value="gsm"/>
+              <span>2G</span>
+            </label>
+        </div>
+
         <div class="row">
           <div class="input-field col s12">
             <p>Select Band(s):</p>
@@ -123,10 +148,10 @@
       </form>
     
 
-    <div class="response-container col s12 m12 l8">
-      <pre id="response"></pre>
+      <div class="response-container col s12 m12 l8">
+        <pre id="response"></pre>
+      </div>
     </div>
-  </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
