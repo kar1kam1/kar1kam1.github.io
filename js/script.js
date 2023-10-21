@@ -1,24 +1,32 @@
 const carriers = {6: "lc", 1: "vf", 3: "ks"}
-const bandClass ={1: "band-1", 3: "band-3", 7: "band-7", 8: "band-8", 38:"band-38", 40: "band-40"}
+const bandClass ={1: "band-1", '1+': "band-1", 3: "band-3", '3+': "band-3", 7: "band-7", '7+': "band-7", 8: "band-8", '8+': "band-8", 38:"band-38", 40: "band-40"}
 const shortCids = {
     'lc': {
-      '1': [12, 22, 32, 15, 25, 35],
+      '1': [12, 22, 32, 42],
+      '1+': [15, 25, 35, 45],
       '3': [11, 21, 31, 41],
-      '7': [13, 23, 33, 43, 14, 24, 34, 44],
+      '7': [13, 23, 33, 43],
+      '7+': [14, 24, 34, 44],
       '8': [19, 29, 39, 49]
     },
     'vf': {
-      '1': [11, 12, 13, 14, 15],
+      '1': [11, 12, 13],
+      '1+': [14, 15, 16],
       '3': [31, 32, 33, 34],
       '7': [71, 72, 73, 74],
-      '8': [81, 82, 83, 84, 85],
-      '38': [61, 62, 63, 64]
+      '8': [81, 82, 83],
+      '8+': [84, 85],
+      '38': [61, 62, 63, 64, 65]
     },
     'ks': {
-      '1': [51, 52, 53, 54, 55, 56],
-      '3': [31, 32, 33, 34, 35, 36, 37, 39],
-      '7': [41, 42, 43, 44, 45, 46, 47],
-      '8': [21, 22, 23, 24, 25, 26],
+      '1': [51, 52, 53],
+      '1+': [54, 55, 56],
+      '3': [31, 32, 33],
+      '3+': [34, 35, 36, 37],
+      '7': [41, 42, 43],
+      '7+': [44, 45, 46, 47],
+      '8': [21, 22, 23],
+      '8+': [24, 25, 26],
       '40': [61, 62, 63, 64]
     }
   }
@@ -141,6 +149,7 @@ async function makeGeolocationRequest(event) {
   const band_points = {};
   //let G = [];
   const AVG = []
+  let averageLocationMap = 'https://www.google.com/maps/dir/'
   
   var requestDiv = document.createElement('div');
   requestDiv.classList.add('request-group');
@@ -158,13 +167,19 @@ async function makeGeolocationRequest(event) {
       if (!(band in band_points)){
         band_points[band] = []
       }
+
+      if (!shortCids[carriers[carrier]][band]){
+        break;
+      }
+      
       for (let shortCID of shortCids[carriers[carrier]][band]){
         try {
         const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
           band_points[band].push(responseData.location);
           AVG.push(responseData.location);
+          averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
 
-          var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
+          var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
           requestDiv.innerHTML += nodeContent;
         } catch (error){
           console.log('Error:', error.message);
@@ -185,8 +200,9 @@ async function makeGeolocationRequest(event) {
         try {
             const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
             AVG.push(responseData.location);
+            averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
   
-            var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
+            var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
             requestDiv.innerHTML += nodeContent;
           } catch (error){
             console.log('Error:', error.message);
@@ -281,7 +297,7 @@ async function makeGeolocationRequest(event) {
 
   }
   let averageLocationPoint = average(AVG)
-  var averageLocation = `<div class="response-item average"> Average Location: <a href="https://www.google.com/maps/place/${averageLocationPoint}" target="_blank">${averageLocationPoint}</a> </div>`;
+  var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
   requestDiv.innerHTML += averageLocation;
 
   var responseElement = document.getElementById("response");
