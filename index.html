@@ -63,14 +63,32 @@
             <label for="apiKey">API Key</label>
           </div>
         </div>
-        
+
+        <div>
+          <label class="radio_label">
+            <input name="requestType" type="radio" value="single_request" checked="checked"/>
+            <span>Single request</span>
+          </label>
+          <label class="radio_label">
+            <input name="requestType" type="radio" value="brutforce"/>
+            <span>Brutforce</span>
+          </label>
+      </div>
+
         <div class="row">
             <div class="input-field col s12">
-              <input type="text" id="eNode" required>
-              <label for="eNode">eNode</label>
+              <input type="text" id="first_eNode" required>
+              <label for="eNode">First eNode</label>
             </div>
         </div>
-        
+
+        <div class="row">
+          <div class="input-field col s12">
+            <input type="text" id="last_eNode">
+            <label for="eNode">Last eNode</label>
+          </div>
+        </div>
+
         <div class="row">
           <div class="input-field col s12">
             <input type="text" id="rnc_lac">

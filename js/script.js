@@ -141,14 +141,19 @@ async function makeGeolocationRequest(event) {
   event.preventDefault();
   var apiKey = document.getElementById("apiKey").value;
   var carrier = document.getElementById("carrier").value;
-  var eNode = document.getElementById("eNode").value.trim();
+  var eNode = document.getElementById("first_eNode").value.trim();
+  var last_eNode = document.getElementById("last_eNode").value.trim();
+
   var checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-  var radioType = document.querySelector('input[type="radio"]:checked').value;
+  var radioType = document.querySelector('input[name="radioType"]:checked').value;
+  var requestType = document.querySelector('input[name="requestType"]:checked').value;
+
   var url = 'https://www.googleapis.com/geolocation/v1/geolocate?key=' + apiKey;
 
   const band_points = {};
   //let G = [];
   const AVG = []
+  var total_requests = 0;
   let averageLocationMap = 'https://www.google.com/maps/dir/'
   
   var requestDiv = document.createElement('div');
@@ -156,153 +161,207 @@ async function makeGeolocationRequest(event) {
 
   
   ////////////////////////
-  if (radioType == 'lte'){
-    var bands = [];
-    for (var i = 0; i < checkboxes.length; i++) {
-      bands.push(checkboxes[i].value);
-    }
-  
-
-    for (let band of bands){
-      if (!(band in band_points)){
-        band_points[band] = []
+  if (requestType == 'single_request'){
+    
+    if (radioType == 'lte'){
+      var bands = [];
+      for (var i = 0; i < checkboxes.length; i++) {
+        bands.push(checkboxes[i].value);
       }
+    
 
-      if (!shortCids[carriers[carrier]][band]){
-        break;
-      }
-      
-      for (let shortCID of shortCids[carriers[carrier]][band]){
-        try {
-        const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
-          band_points[band].push(responseData.location);
-          AVG.push(responseData.location);
-          averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
-
-          var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
-          requestDiv.innerHTML += nodeContent;
-        } catch (error){
-          console.log('Error:', error.message);
+      for (let band of bands){
+        if (!(band in band_points)){
+          band_points[band] = []
         }
-      }
-    }
-  }  
 
-  
-  //////////////////////////
-  if (radioType == 'wcdma'){
-    var rncID = document.getElementById("rnc_lac").value.trim();
+        if (!shortCids[carriers[carrier]][band]){
+          break;
+        }
 
-    if (carrier == '1'){
-      for (let sector = 1; sector <= 9; sector++){
-        let CID = eNode + sector;
-
-        try {
-            const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
+        for (let shortCID of shortCids[carriers[carrier]][band]){
+          try {
+            total_requests += 1;
+            const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
+            band_points[band].push(responseData.location);
             AVG.push(responseData.location);
+            
             averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
-  
-            var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
+
+            var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
             requestDiv.innerHTML += nodeContent;
           } catch (error){
             console.log('Error:', error.message);
           }
-      }  
-    }
+        }
+      }
+    }  
 
-    if (carrier == '3'){
-      let ks_sectors = ['5','6','7']
 
-      for (let sector of ks_sectors){
-        let CID = eNode + sector;
+    //////////////////////////
+    if (radioType == 'wcdma'){
+      var rncID = document.getElementById("rnc_lac").value.trim();
 
-        try {
+      if (carrier == '1'){
+        for (let sector = 1; sector <= 9; sector++){
+          let CID = eNode + sector;
+
+          try {
+              total_requests += 1;
+              const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
+              AVG.push(responseData.location);
+              averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
+          
+              var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
+              requestDiv.innerHTML += nodeContent;
+            } catch (error){
+              console.log('Error:', error.message);
+            }
+        }  
+      }
+
+      if (carrier == '3'){
+        let ks_sectors = ['5','6','7']
+
+        for (let sector of ks_sectors){
+          let CID = eNode + sector;
+
+          try {
+              total_requests += 1;
+              const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
+              AVG.push(responseData.location);
+          
+              var nodeContent = `<div class="response-item wcdma_ks">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
+              requestDiv.innerHTML += nodeContent;
+            } catch (error){
+              console.log('Error:', error.message);
+            }
+
+        }
+      }
+
+      if (carrier == '6'){
+        for (let sector = 0; sector < 3; sector++){
+          let CID = parseInt(eNode) + 1000*sector + '1';
+          console.log(CID)
+
+          try {
+            total_requests += 1;
             const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
             AVG.push(responseData.location);
-  
+
+            var nodeContent = `<div class="response-item wcdma_lc">${CID} | ${responseData.location.lat},${responseData.location.lng}</div>`;
+            requestDiv.innerHTML += nodeContent;
+          } catch (error){
+            console.log('Error:', error.message);
+          }
+
+        }
+
+      }
+    }
+
+
+    ///////////////////////
+    if (radioType == 'gsm'){
+      var rncID = document.getElementById("rnc_lac").value.trim();
+
+      if (carrier == '3'){
+        for (let sector = 1; sector <= 3; sector++){
+          let CID = eNode + sector;
+          try {
+            total_requests += 1;
+            const responseData = await get_gsm_point(url, carriers[carrier], parseInt(CID), parseInt(carrier), rncID)
+            AVG.push(responseData.location);
+            total_requests += 1;
+
             var nodeContent = `<div class="response-item wcdma_ks">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
             requestDiv.innerHTML += nodeContent;
           } catch (error){
             console.log('Error:', error.message);
           }
 
-      }
-    }
 
-    if (carrier == '6'){
-      for (let sector = 0; sector < 3; sector++){
-        let CID = parseInt(eNode) + 1000*sector + '1';
-        console.log(CID)
-        
-        try {
-          const responseData = await get_wcdma_point(url, carriers[carrier], parseInt(rncID*65536 + parseInt(CID)), parseInt(carrier))
-          AVG.push(responseData.location);
-
-          var nodeContent = `<div class="response-item wcdma_lc">${CID} | ${responseData.location.lat},${responseData.location.lng}</div>`;
-          requestDiv.innerHTML += nodeContent;
-        } catch (error){
-          console.log('Error:', error.message);
         }
+      } else {
+        for (let sector = 1; sector <= 8; sector++){
+          let CID = eNode + sector;
 
-      }
+          try {
+            total_requests += 1;
+            const responseData = await get_gsm_point(url, carriers[carrier], parseInt(CID), parseInt(carrier), rncID)
+            AVG.push(responseData.location);
 
-    }
-  }
+            if (carrier == '1'){
+              var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
+              requestDiv.innerHTML += nodeContent;
+            }
 
-
-  ///////////////////////
-  if (radioType == 'gsm'){
-    var rncID = document.getElementById("rnc_lac").value.trim();
-
-    if (carrier == '3'){
-      for (let sector = 1; sector <= 3; sector++){
-        let CID = eNode + sector;
-        try {
-          const responseData = await get_gsm_point(url, carriers[carrier], parseInt(CID), parseInt(carrier), rncID)
-          AVG.push(responseData.location);
-
-          var nodeContent = `<div class="response-item wcdma_ks">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
-          requestDiv.innerHTML += nodeContent;
-        } catch (error){
-          console.log('Error:', error.message);
-        }
-
-
-      }
-    } else {
-      for (let sector = 1; sector <= 8; sector++){
-        let CID = eNode + sector;
-
-        try {
-          const responseData = await get_gsm_point(url, carriers[carrier], parseInt(CID), parseInt(carrier), rncID)
-          AVG.push(responseData.location);
-          
-          if (carrier == '1'){
-            var nodeContent = `<div class="response-item wcdma_vf">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
-            requestDiv.innerHTML += nodeContent;
+            if (carrier == '6'){
+              var nodeContent = `<div class="response-item wcdma_lc">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
+              requestDiv.innerHTML += nodeContent;
+            
+            }
+          } catch (error){
+            console.log('Error:', error.message);
           }
 
-          if (carrier == '6'){
-            var nodeContent = `<div class="response-item wcdma_lc">${eNode} | ${sector}  ${responseData.location.lat},${responseData.location.lng}</div>`;
-            requestDiv.innerHTML += nodeContent;
+        }
+
+      }
+
+    }
+
+  }
+
+  if (requestType == 'brutforce'){
+    if((last_eNode - eNode) <= 100){
+      if (radioType == 'lte'){
+        var bands = [];
+
+        for (var i = 0; i < checkboxes.length; i++) {
+          bands.push(checkboxes[i].value);
+        }
+      
+        for (let band of bands){
   
+          if (!shortCids[carriers[carrier]][band]){
+            break;
           }
-        } catch (error){
-          console.log('Error:', error.message);
+
+          for (var currentNode = eNode; currentNode <= last_eNode; currentNode++){
+            for (let shortCID of shortCids[carriers[carrier]][band]){
+              try {
+                total_requests += 1;
+                const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier))
+                if(responseData){
+                  var nodeContent = `<div class="response-item ${bandClass[band]}">${currentNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
+                  requestDiv.innerHTML += nodeContent;
+                  break;
+                }
+              } catch (error){
+                console.log('Error:', error.message);
+              }
+            }
+          }
         }
-
-      }
-
+      }  
+  
     }
 
   }
-  let averageLocationPoint = average(AVG)
-  var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
-  requestDiv.innerHTML += averageLocation;
 
-  var responseElement = document.getElementById("response");
-  responseElement.appendChild(requestDiv);
-
+  if (AVG.length > 0){
+    //console.log(AVG)
+    let averageLocationPoint = average(AVG)
+    var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
+    requestDiv.innerHTML += averageLocation;
+  }
+    var totalRrequests = `<div class="response-item average"> Total requests: ${total_requests}</div>`;
+    requestDiv.innerHTML += totalRrequests;
+    var responseElement = document.getElementById("response");
+    responseElement.appendChild(requestDiv);
+  
   //console.log(band_points)
   //console.log(AVG)
   //console.log(average(AVG))
