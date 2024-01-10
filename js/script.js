@@ -42,7 +42,7 @@ function average(points) {
   return `${latAverage},${lngAverage}`;
 }
 
-async function get_lte_point(url, carrier, cellId, mobileNetworkCode){
+async function get_lte_point(url, carrier, cellId, mobileNetworkCode, shortCID, band, eNode, requestDiv){
   try{
     let response = await fetch(url, {
           method: 'POST',
@@ -136,14 +136,16 @@ async function get_gsm_point(url, carrier, cellId, mobileNetworkCode, LAC){
   }  
 }
 
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function makeGeolocationRequest(event) {
   event.preventDefault();
   var apiKey = document.getElementById("apiKey").value;
-  var carrier = document.getElementById("carrier").value;
+  //var carrier = document.getElementById("carrier").value;
   var eNode = document.getElementById("first_eNode").value.trim();
   var last_eNode = document.getElementById("last_eNode").value.trim();
 
+  var carrier = document.querySelector('input[name="carrier"]:checked').value;
   var checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
   var radioType = document.querySelector('input[name="radioType"]:checked').value;
   var requestType = document.querySelector('input[name="requestType"]:checked').value;
@@ -156,6 +158,7 @@ async function makeGeolocationRequest(event) {
   var total_requests = 0;
   let averageLocationMap = 'https://www.google.com/maps/dir/'
   
+  var responseElement = document.getElementById("response");
   var requestDiv = document.createElement('div');
   requestDiv.classList.add('request-group');
 
@@ -182,7 +185,7 @@ async function makeGeolocationRequest(event) {
         for (let shortCID of shortCids[carriers[carrier]][band]){
           try {
             total_requests += 1;
-            const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
+            const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier), shortCID, band, eNode, requestDiv)
             band_points[band].push(responseData.location);
             AVG.push(responseData.location);
             
@@ -190,6 +193,9 @@ async function makeGeolocationRequest(event) {
 
             var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
             requestDiv.innerHTML += nodeContent;
+            responseElement.appendChild(requestDiv);
+
+            await sleep(500);
           } catch (error){
             console.log('Error:', error.message);
           }
@@ -315,42 +321,42 @@ async function makeGeolocationRequest(event) {
   }
 
   if (requestType == 'brutforce'){
-    if((last_eNode - eNode) <= 100){
-      if (radioType == 'lte'){
-        var bands = [];
+    if ((last_eNode - eNode) > 300){
+      return;
+    }
 
-        for (var i = 0; i < checkboxes.length; i++) {
-          bands.push(checkboxes[i].value);
-        }
-      
-        for (let band of bands){
-  
-          if (!shortCids[carriers[carrier]][band]){
-            break;
-          }
+    var bands = [];   
+    for (var i = 0; i < checkboxes.length; i++) {
+      bands.push(checkboxes[i].value);
+    }
 
-          for (var currentNode = eNode; currentNode <= last_eNode; currentNode++){
-            for (let shortCID of shortCids[carriers[carrier]][band]){
-              try {
-                total_requests += 1;
-                const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier))
-                if(responseData){
-                  var nodeContent = `<div class="response-item ${bandClass[band]}">${currentNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
-                  requestDiv.innerHTML += nodeContent;
-                  break;
-                }
-              } catch (error){
-                console.log('Error:', error.message);
-              }
+    for (let band of bands){
+    
+      if (!shortCids[carriers[carrier]][band]){
+        break;
+      }   
+      for (var currentNode = eNode; currentNode <= last_eNode; currentNode++){
+        for (let shortCID of shortCids[carriers[carrier]][band]){
+          try {
+            total_requests += 1;
+            const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier), shortCID, band, currentNode, requestDiv)
+            if(responseData){
+              var nodeContent = `<div class="response-item ${bandClass[band]}">${currentNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
+              requestDiv.innerHTML += nodeContent;
+              responseElement.appendChild(requestDiv);
+              break;
             }
+          } catch (error){
+            console.log('Error:', error.message);
           }
         }
-      }  
-  
+        await sleep(500);
+      }
     }
 
   }
 
+  
   if (AVG.length > 0){
     //console.log(AVG)
     let averageLocationPoint = average(AVG)
@@ -359,9 +365,9 @@ async function makeGeolocationRequest(event) {
   }
     var totalRrequests = `<div class="response-item average"> Total requests: ${total_requests}</div>`;
     requestDiv.innerHTML += totalRrequests;
-    var responseElement = document.getElementById("response");
-    responseElement.appendChild(requestDiv);
-  
+
+    //responseElement.appendChild(requestDiv);
+
   //console.log(band_points)
   //console.log(AVG)
   //console.log(average(AVG))
