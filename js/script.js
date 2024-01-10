@@ -190,8 +190,8 @@ async function makeGeolocationRequest(event) {
             AVG.push(responseData.location);
             
             averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
-
-            var nodeContent = `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
+            let eNodeCM = `https:\/\/www.cellmapper.net\/map?MCC=255&MNC=${carrier}&type=LTE&latitude=${responseData.location.lat}&longitude=${responseData.location.lng}&zoom=15&showTowers=true&showIcons=false&showTowerLabels=true&tilesEnabled=true&showOrphans=true`
+            var nodeContent = `<div class="response-item ${bandClass[band]}"><a href="${eNodeCM}" target="_blank">${eNode}</a> | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
             requestDiv.innerHTML += nodeContent;
             responseElement.appendChild(requestDiv);
 
@@ -365,8 +365,7 @@ async function makeGeolocationRequest(event) {
   }
     var totalRrequests = `<div class="response-item average"> Total requests: ${total_requests}</div>`;
     requestDiv.innerHTML += totalRrequests;
-
-    //responseElement.appendChild(requestDiv);
+    responseElement.appendChild(requestDiv);
 
   //console.log(band_points)
   //console.log(AVG)
