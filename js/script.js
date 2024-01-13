@@ -338,7 +338,7 @@ async function makeGeolocationRequest(event) {
         for (let shortCID of shortCids[carriers[carrier]][band]){
           try {
             total_requests += 1;
-            let totalRrequestElement = document.getElementById(eNode);
+            let totalRrequestElement = document.getElementById(currentNodeId);
             totalRrequestElement.innerText = `Total requests: ${total_requests}`;
 
             const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier), shortCID, band, currentNode, requestDiv)
