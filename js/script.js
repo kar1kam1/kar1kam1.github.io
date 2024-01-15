@@ -31,6 +31,17 @@ const shortCids = {
     }
   }
 
+function showTotalRequests(total_requests, currentNodeId){
+  let totalRrequestElement = document.getElementById(currentNodeId);
+  totalRrequestElement.innerText = `Total requests: ${total_requests}`;
+}
+
+function showResponseData(requestDiv,responseData, carrier, band, eNode, band, shortCID){
+  let eNodeCM = `https:\/\/www.cellmapper.net\/map?MCC=255&MNC=${carrier}&type=LTE&latitude=${responseData.location.lat}&longitude=${responseData.location.lng}&zoom=15&showTowers=true&showIcons=false&showTowerLabels=true&tilesEnabled=true&showOrphans=true`
+  var nodeContent = `<div class="response-item ${bandClass[band]}"><a href="${eNodeCM}" target="_blank">${eNode}</a> | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
+  requestDiv.innerHTML += nodeContent;
+}
+
 function average(points) {
   const latSum = points.reduce((sum, point) => sum + parseFloat(point.lat), 0);
   const lngSum = points.reduce((sum, point) => sum + parseFloat(point.lng), 0);
@@ -42,7 +53,7 @@ function average(points) {
   return `${latAverage},${lngAverage}`;
 }
 
-async function get_lte_point(url, carrier, cellId, mobileNetworkCode, shortCID, band, eNode, requestDiv){
+async function get_lte_point(url, carrier, cellId, mobileNetworkCode){
   try{
     let response = await fetch(url, {
           method: 'POST',
@@ -153,12 +164,12 @@ async function makeGeolocationRequest(event) {
   var url = 'https://www.googleapis.com/geolocation/v1/geolocate?key=' + apiKey;
 
   const band_points = {};
-  const AVG = []
+  const AVG = [];
   const bands = [...checkboxes].map(checkbox => checkbox.value);
   const currentTime = new Date().toTimeString().split(' ')[0];
-  const currentNodeId = `${eNode}-${currentTime}`
+  const currentNodeId = `${eNode}-${currentTime}`;
   var total_requests = 0;
-  let averageLocationMap = 'https://www.google.com/maps/dir/'
+  let averageLocationMap = 'https://www.google.com/maps/dir/';
   
   var responseElement = document.getElementById("response");
   var requestDiv = document.createElement('div');
@@ -185,19 +196,14 @@ async function makeGeolocationRequest(event) {
         for (let shortCID of shortCids[carriers[carrier]][band]){
           try {
             total_requests += 1;
-            let totalRrequestElement = document.getElementById(currentNodeId);
-            totalRrequestElement.innerText = `Total requests: ${total_requests}`;
+            showTotalRequests(total_requests, currentNodeId);
 
             const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier), shortCID, band, eNode, requestDiv)
             band_points[band].push(responseData.location);
             AVG.push(responseData.location);
-            
             averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
-            let eNodeCM = `https:\/\/www.cellmapper.net\/map?MCC=255&MNC=${carrier}&type=LTE&latitude=${responseData.location.lat}&longitude=${responseData.location.lng}&zoom=15&showTowers=true&showIcons=false&showTowerLabels=true&tilesEnabled=true&showOrphans=true`
-            var nodeContent = `<div class="response-item ${bandClass[band]}"><a href="${eNodeCM}" target="_blank">${eNode}</a> | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
-            requestDiv.innerHTML += nodeContent;
-            //responseElement.appendChild(requestDiv);
 
+            showResponseData(requestDiv, responseData, carrier, band, eNode, band, shortCID)
             await sleep(500);
           } catch (error){
             console.log('Error:', error.message);
@@ -321,6 +327,12 @@ async function makeGeolocationRequest(event) {
 
     }
 
+    if (AVG.length > 0){
+      let averageLocationPoint = average(AVG);
+      var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
+      requestDiv.innerHTML += averageLocation;
+    }
+  
   }
 
   if (requestType == 'brutforce'){
@@ -330,23 +342,19 @@ async function makeGeolocationRequest(event) {
     }
 
     for (let band of bands){
-    
       if (!shortCids[carriers[carrier]][band]){
         break;
-      }   
+      }
+
       for (var currentNode = eNode; currentNode <= last_eNode; currentNode++){
         for (let shortCID of shortCids[carriers[carrier]][band]){
           try {
             total_requests += 1;
-            let totalRrequestElement = document.getElementById(currentNodeId);
-            totalRrequestElement.innerText = `Total requests: ${total_requests}`;
+            showTotalRequests(total_requests, currentNodeId);
 
             const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier), shortCID, band, currentNode, requestDiv)
             if(responseData){
-              let eNodeCM = `https:\/\/www.cellmapper.net\/map?MCC=255&MNC=${carrier}&type=LTE&latitude=${responseData.location.lat}&longitude=${responseData.location.lng}&zoom=15&showTowers=true&showIcons=false&showTowerLabels=true&tilesEnabled=true&showOrphans=true`
-              var nodeContent = `<div class="response-item ${bandClass[band]}"><a href="${eNodeCM}" target="_blank">${currentNode}</a> | ${band} (${shortCID}) <a href="https://www.google.com/maps/place/${responseData.location.lat},${responseData.location.lng}" target="_blank">${responseData.location.lat},${responseData.location.lng}</a></div>`;
-              requestDiv.innerHTML += nodeContent;
-              //responseElement.appendChild(requestDiv);
+              showResponseData(requestDiv, responseData, carrier, band, currentNode, band, shortCID)
               break;
             }
           } catch (error){
@@ -356,14 +364,5 @@ async function makeGeolocationRequest(event) {
         await sleep(500);
       }
     }
-
-  }
-
-  
-  if (AVG.length > 0){
-    //console.log(AVG)
-    let averageLocationPoint = average(AVG)
-    var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
-    requestDiv.innerHTML += averageLocation;
   }
 }
