@@ -30,6 +30,21 @@ const shortCids = {
       '40': [61, 62, 63, 64]
     }
   }
+function createMap(currentMapId, averageLocationPoint, band_points){
+  const map = L.map(currentMapId).setView(averageLocationPoint, 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+  var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map);
+
+  Object.entries(band_points).forEach(([key, coordinatesArray]) => {
+    coordinatesArray.forEach(({ lat, lng }) => {
+      //console.log(`Latitude: ${lat}, Longitude: ${lng}`);
+      var marker = L.marker([lat,lng]).bindPopup(`${key}`).addTo(map);
+    });
+  });
+}
 
 function showTotalRequests(total_requests, currentNodeId){
   let totalRrequestElement = document.getElementById(currentNodeId);
@@ -50,7 +65,7 @@ function average(points) {
   const latAverage = latSum / numPoints;
   const lngAverage = lngSum / numPoints;
 
-  return `${latAverage},${lngAverage}`;
+  return [latAverage, lngAverage];
 }
 
 async function get_lte_point(url, carrier, cellId, mobileNetworkCode){
@@ -168,6 +183,7 @@ async function makeGeolocationRequest(event) {
   const bands = [...checkboxes].map(checkbox => checkbox.value);
   const currentTime = new Date().toTimeString().split(' ')[0];
   const currentNodeId = `${eNode}-${currentTime}`;
+  let currentMapId = `map-${currentNodeId}`;
   var total_requests = 0;
   let averageLocationMap = 'https://www.google.com/maps/dir/';
   
@@ -331,8 +347,9 @@ async function makeGeolocationRequest(event) {
       let averageLocationPoint = average(AVG);
       var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
       requestDiv.innerHTML += averageLocation;
+      requestDiv.innerHTML += `<div class="map" id="${currentMapId}"></div>`;
+      createMap(currentMapId, averageLocationPoint, band_points);
     }
-  
   }
 
   if (requestType == 'brutforce'){
