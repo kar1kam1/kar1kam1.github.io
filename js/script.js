@@ -31,6 +31,7 @@ const shortCids = {
     }
   }
 function createMap(currentMapId, averageLocationPoint, band_points){
+  console.log(band_points);
   const map = L.map(currentMapId).setView(averageLocationPoint, 13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -39,9 +40,9 @@ function createMap(currentMapId, averageLocationPoint, band_points){
   var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map);
 
   Object.entries(band_points).forEach(([key, coordinatesArray]) => {
-    coordinatesArray.forEach(({ lat, lng }) => {
+    coordinatesArray.forEach(({ lat, lng, shortCID }) => {
       //console.log(`Latitude: ${lat}, Longitude: ${lng}`);
-      var marker = L.marker([lat,lng]).bindPopup(`${key}`).addTo(map);
+      var marker = L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`).addTo(map);
     });
   });
 }
@@ -183,7 +184,7 @@ async function makeGeolocationRequest(event) {
   const bands = [...checkboxes].map(checkbox => checkbox.value);
   const currentTime = new Date().toTimeString().split(' ')[0];
   const currentNodeId = `${eNode}-${currentTime}`;
-  let currentMapId = `map-${currentNodeId}`;
+  const currentMapId = `map-${currentNodeId}`;
   var total_requests = 0;
   let averageLocationMap = 'https://www.google.com/maps/dir/';
   
@@ -214,7 +215,8 @@ async function makeGeolocationRequest(event) {
             total_requests += 1;
             showTotalRequests(total_requests, currentNodeId);
 
-            const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier), shortCID, band, eNode, requestDiv)
+            const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
+            responseData.location.shortCID = shortCID;
             band_points[band].push(responseData.location);
             AVG.push(responseData.location);
             averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
@@ -345,8 +347,7 @@ async function makeGeolocationRequest(event) {
 
     if (AVG.length > 0){
       let averageLocationPoint = average(AVG);
-      var averageLocation = `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
-      requestDiv.innerHTML += averageLocation;
+      requestDiv.innerHTML += `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
       requestDiv.innerHTML += `<div class="map" id="${currentMapId}"></div>`;
       createMap(currentMapId, averageLocationPoint, band_points);
     }
