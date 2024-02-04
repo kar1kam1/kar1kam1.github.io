@@ -207,7 +207,7 @@ async function makeGeolocationRequest(event) {
         }
 
         if (!shortCids[carriers[carrier]][band]){
-          break;
+          continue;
         }
 
         for (let shortCID of shortCids[carriers[carrier]][band]){
