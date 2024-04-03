@@ -20,7 +20,7 @@ const shortCids = {
     },
     'ks': {
       '1': [51, 52, 53],
-      '1+': [54, 55, 56],
+      '1+': [54, 55, 56, 57, 58, 59],
       '3': [31, 32, 33],
       '3+': [34, 35, 36, 37],
       '7': [41, 42, 43],
@@ -31,12 +31,13 @@ const shortCids = {
     }
   }
 function createMap(currentMapId, averageLocationPoint, band_points){
-  console.log(band_points);
+  //console.log(band_points);
   const map = L.map(currentMapId).setView(averageLocationPoint, 13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
+  //var marker = L.marker(averageSectorLocationPoint).bindPopup("<b>Sectors Center</b>").addTo(map);
   var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map);
 
   Object.entries(band_points).forEach(([key, coordinatesArray]) => {
@@ -180,6 +181,8 @@ async function makeGeolocationRequest(event) {
   var url = 'https://www.googleapis.com/geolocation/v1/geolocate?key=' + apiKey;
 
   const band_points = {};
+  const sector_points = {};
+  const AVG_sectors = [];
   const AVG = [];
   const bands = [...checkboxes].map(checkbox => checkbox.value);
   const currentTime = new Date().toTimeString().split(' ')[0];
@@ -217,11 +220,24 @@ async function makeGeolocationRequest(event) {
 
             const responseData = await get_lte_point(url, carriers[carrier], parseInt(eNode*256 + shortCID), parseInt(carrier))
             responseData.location.shortCID = shortCID;
+            if (carrier === 6) {
+              var sector = Math.floor(shortCID/10)
+            } else {
+              var sector = Math.floor(shortCID/10)%10
+            }
+
+            if(!(sector in sector_points)){
+              sector_points[sector] = [];
+            }
+            sector_points[sector].push(responseData.location);
+
             band_points[band].push(responseData.location);
             AVG.push(responseData.location);
             averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
 
-            showResponseData(requestDiv, responseData, carrier, band, eNode, band, shortCID)
+            //showResponseData(requestDiv, responseData, carrier, band, eNode, band, shortCID)
+			requestDiv.innerHTML += `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
+
             await sleep(500);
           } catch (error){
             console.log('Error:', error.message);
@@ -346,9 +362,23 @@ async function makeGeolocationRequest(event) {
     }
 
     if (AVG.length > 0){
+      //console.log(sector_points);
+      Object.entries(sector_points).forEach(([key, coordinatesArray]) => {
+        AVG_sectors.push({lat: average(coordinatesArray)[0], lng: average(coordinatesArray)[1]});
+        //console.log(key, coordinatesArray);
+      });
+      let averageSectorLocationPoint = average(AVG_sectors);
       let averageLocationPoint = average(AVG);
-      requestDiv.innerHTML += `<div class="response-item average"> Average Location: <a href="${averageLocationMap}/" target="_blank">${averageLocationPoint}</a> </div>`;
-      requestDiv.innerHTML += `<div class="map" id="${currentMapId}"></div>`;
+	  console.log(averageLocationPoint, averageSectorLocationPoint);
+	  
+	  if(averageLocationPoint[0] !== averageSectorLocationPoint[0]){
+		  averageLocationPoint = averageSectorLocationPoint;
+	  };
+      requestDiv.innerHTML += `<div class="response-item average"> Average Location: ${averageLocationPoint}`;
+      requestDiv.innerHTML += `<div class="response-item average"><a href="${averageLocationMap}${averageLocationPoint}//" target="_blank">[GOOGLE]</a>   <a href="https:\/\/www.cellmapper.net\/map?MCC=255&MNC=${carrier}&type=LTE&latitude=${averageLocationPoint[0]}&longitude=${averageLocationPoint[1]}&zoom=15&showTowers=true&showIcons=false&showTowerLabels=true&tilesEnabled=true&showOrphans=true" target="_blank">[CM]</a></div>`;
+
+	  requestDiv.innerHTML += `<div class="map" id="${currentMapId}"></div>`;
+
       createMap(currentMapId, averageLocationPoint, band_points);
     }
   }
