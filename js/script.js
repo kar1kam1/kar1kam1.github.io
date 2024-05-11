@@ -174,9 +174,11 @@ async function makeGeolocationRequest(event) {
   var last_eNode = document.getElementById("last_eNode").value.trim();
 
   var carrier = document.querySelector('input[name="carrier"]:checked').value;
-  var checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+  var checkboxes = document.querySelectorAll('input[name="band"]:checked');
   var radioType = document.querySelector('input[name="radioType"]:checked').value;
   var requestType = document.querySelector('input[name="requestType"]:checked').value;
+  var isGreedy = document.getElementById("brutforceType").checked;
+  console.log(isGreedy);
 
   var url = 'https://www.googleapis.com/geolocation/v1/geolocate?key=' + apiKey;
 
@@ -237,7 +239,9 @@ async function makeGeolocationRequest(event) {
 
             //showResponseData(requestDiv, responseData, carrier, band, eNode, band, shortCID)
 			requestDiv.innerHTML += `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
-
+            if (isGreedy){
+              break;
+            }
             await sleep(500);
           } catch (error){
             console.log('Error:', error.message);
@@ -384,25 +388,24 @@ async function makeGeolocationRequest(event) {
   }
 
   if (requestType == 'brutforce'){
-    if ((last_eNode - eNode) > 300){
+    if ((last_eNode - eNode) > 500){
       alert("range too large");
       return;
     }
-
-    for (let band of bands){
-      if (!shortCids[carriers[carrier]][band]){
-        break;
-      }
-
-      for (var currentNode = eNode; currentNode <= last_eNode; currentNode++){
+    for (var currentNode = eNode; currentNode <= last_eNode; currentNode++){
+      for (let band of bands){
+        if (!shortCids[carriers[carrier]][band]){
+          break;
+        }
+        let isBandFound = false;
         for (let shortCID of shortCids[carriers[carrier]][band]){
           try {
             total_requests += 1;
             showTotalRequests(total_requests, currentNodeId);
-
             const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier), shortCID, band, currentNode, requestDiv)
             if(responseData){
               showResponseData(requestDiv, responseData, carrier, band, currentNode, band, shortCID)
+              isBandFound = true
               break;
             }
           } catch (error){
@@ -410,6 +413,9 @@ async function makeGeolocationRequest(event) {
           }
         }
         await sleep(500);
+        if (isGreedy && isBandFound){
+          break;
+        }
       }
     }
   }
