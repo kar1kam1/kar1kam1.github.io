@@ -31,21 +31,31 @@ const shortCids = {
     }
   }
 function createMap(currentMapId, averageLocationPoint, band_points){
-  //console.log(band_points);
-  const map = L.map(currentMapId).setView(averageLocationPoint, 13);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
-  //var marker = L.marker(averageSectorLocationPoint).bindPopup("<b>Sectors Center</b>").addTo(map);
-  var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map);
+});
 
-  Object.entries(band_points).forEach(([key, coordinatesArray]) => {
-    coordinatesArray.forEach(({ lat, lng, shortCID }) => {
-      //console.log(`Latitude: ${lat}, Longitude: ${lng}`);
-      var marker = L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`).addTo(map);
-    });
+const band_layers = {};
+
+Object.entries(band_points).forEach(([key, coordinatesArray]) => {
+  const group = [];
+  coordinatesArray.forEach(({ lat, lng, shortCID }) => {
+    group.push(L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`));
   });
+  band_layers[`Band${key}`] = L.layerGroup(group);
+});
+
+  const map = L.map(currentMapId, {
+    center: averageLocationPoint,
+    zoom: 13,
+    layers: [osm, ...Object.values(band_layers)]
+  });
+
+  var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map).openPopup();
+
+  const layerControl = L.control.layers(null, band_layers).addTo(map).expand();
+  
 }
 
 function showTotalRequests(total_requests, currentNodeId){
