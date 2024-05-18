@@ -39,11 +39,13 @@ function createMap(currentMapId, averageLocationPoint, band_points){
 const band_layers = {};
 
 Object.entries(band_points).forEach(([key, coordinatesArray]) => {
-  const group = [];
-  coordinatesArray.forEach(({ lat, lng, shortCID }) => {
-    group.push(L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`));
-  });
-  band_layers[`Band${key}`] = L.layerGroup(group);
+  if (key && Array.isArray(coordinatesArray) && coordinatesArray.length > 0){
+    const group = [];
+    coordinatesArray.forEach(({ lat, lng, shortCID }) => {
+      group.push(L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`));
+    });
+    band_layers[`Band${key}`] = L.layerGroup(group);
+  };
 });
 
   const map = L.map(currentMapId, {
@@ -193,6 +195,9 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
 document.getElementById('requestTypeRadio').addEventListener('change', function(event) {
   if (event.target.type === 'radio' && event.target.checked) {
       document.getElementById('first_eNode').required = (event.target.value !== 'bruteforce_file');
+      document.getElementById('fileInputRow').style.display = (event.target.value == 'bruteforce_file') ? 'block' : 'none';
+      document.getElementById('last_eNodeRow').style.display = (event.target.value == 'bruteforce') ? 'block' : 'none';
+
   }
 });
 
