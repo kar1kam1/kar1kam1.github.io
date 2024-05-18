@@ -13,6 +13,10 @@
       top: 0;
     }
   }
+    .container {
+      max-width: 1920px;
+      width: 80%;
+    }
     div.input-field > p > label {
       padding-right: 15px;
     }
@@ -66,7 +70,7 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container col l12">
     <h1>Geolocation API Example</h1>
     
     <div class="row">
@@ -79,21 +83,41 @@
         </div>
 
         <div>
-          <label class="radio_label">
-            <input name="requestType" type="radio" value="single_request" checked="checked"/>
-            <span>Single request</span>
-          </label>
-          <label class="radio_label">
-            <input name="requestType" type="radio" value="brutforce"/>
-            <span>Brutforce</span>
-          </label>
-          <label class="radio_label">
-            <input id="brutforceType" type="checkbox" />
-            <span>Greedy</span>
-          </label>
-
+          <p id="requestTypeRadio">            
+            <label class="radio_label">
+              <input name="requestType" type="radio" value="single_request" checked="checked"/>
+              <span>Single request</span>
+            </label>
+            <label class="radio_label">
+              <input name="requestType" type="radio" value="bruteforce"/>
+              <span>Bruteforce</span>
+            </label>
+            <label class="radio_label">
+              <input name="requestType" type="radio" value="bruteforce_file" id="bruteforce_file" />
+              <span>Bruteforce from file</span>
+            </label>
+          </p>
+          <p>
+            <label class="radio_label">
+              <input id="brutforceType" type="checkbox" />
+              <span>Greedy</span>
+            </label>
+          </p>  
+            
       </div>
-
+      <div class = "row">
+        <div class = "file-field input-field col s12">
+           <div class = "btn">
+              <span>Browse</span>
+              <input type = "file" id="fileInput"/>
+           </div>
+           
+           <div class = "file-path-wrapper">
+              <input class = "file-path validate" type = "text"
+                 placeholder = "Upload file" />
+           </div>
+        </div>
+     </div>
         <div class="row">
             <div class="input-field col s12">
               <input type="text" id="first_eNode" required>

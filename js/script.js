@@ -176,10 +176,31 @@ async function get_gsm_point(url, carrier, cellId, mobileNetworkCode, LAC){
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
+var fileContent = '';
+document.getElementById('fileInput').addEventListener('change', function(event) {
+  const file = event.target.files[0];
+  if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+          fileContent = e.target.result;
+      };
+      reader.readAsText(file);
+  } else {
+      console.log('No file selected');
+  }
+});
+
+document.getElementById('requestTypeRadio').addEventListener('change', function(event) {
+  if (event.target.type === 'radio' && event.target.checked) {
+      document.getElementById('first_eNode').required = (event.target.value !== 'bruteforce_file');
+  }
+});
+
+
+
 async function makeGeolocationRequest(event) {
   event.preventDefault();
   var apiKey = document.getElementById("apiKey").value;
-  //var carrier = document.getElementById("carrier").value;
   var eNode = document.getElementById("first_eNode").value.trim();
   var last_eNode = document.getElementById("last_eNode").value.trim();
 
@@ -200,6 +221,7 @@ async function makeGeolocationRequest(event) {
   const currentTime = new Date().toTimeString().split(' ')[0];
   const currentNodeId = `${eNode}-${currentTime}`;
   const currentMapId = `map-${currentNodeId}`;
+
   var total_requests = 0;
   let averageLocationMap = 'https://www.google.com/maps/dir/';
   
@@ -397,7 +419,7 @@ async function makeGeolocationRequest(event) {
     }
   }
 
-  if (requestType == 'brutforce'){
+  if (requestType == 'bruteforce'){
     if ((last_eNode - eNode) > 500){
       alert("range too large");
       return;
@@ -428,5 +450,47 @@ async function makeGeolocationRequest(event) {
         }
       }
     }
+  }
+  if (requestType == 'bruteforce_file'){
+    let validNumbers = [];  
+  
+    if (fileContent) {
+      const lines = fileContent.split('\r\n');
+      validNumbers = lines
+      .map(line => line.trim())
+      .filter(line => line.length === 6 && !isNaN(line));      
+      console.log(validNumbers);
+    } else {
+        alert('No file content to process. Please upload a file first.');
+    }
+
+    for (let currentNode of validNumbers){
+      for (let band of bands){
+        if (!shortCids[carriers[carrier]][band]){
+          break;
+        }
+        let isBandFound = false;
+        for (let shortCID of shortCids[carriers[carrier]][band]){
+          try {
+            total_requests += 1;
+            showTotalRequests(total_requests, currentNodeId);
+            const responseData = await get_lte_point(url, carriers[carrier], parseInt(currentNode*256 + shortCID), parseInt(carrier), shortCID, band, currentNode, requestDiv)
+            if(responseData){
+              showResponseData(requestDiv, responseData, carrier, band, currentNode, band, shortCID)
+              isBandFound = true
+              break;
+            }
+          } catch (error){
+            console.log('Error:', error.message);
+          }
+        }
+        await sleep(500);
+        if (isGreedy && isBandFound){
+          break;
+        }
+      }
+    }
+
+
   }
 }
