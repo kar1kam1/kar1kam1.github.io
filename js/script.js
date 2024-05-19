@@ -31,21 +31,21 @@ const shortCids = {
     }
   }
 function createMap(currentMapId, averageLocationPoint, band_points){
-  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-});
+    const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  });
 
-const band_layers = {};
+  const band_layers = {};
 
-Object.entries(band_points).forEach(([key, coordinatesArray]) => {
-  if (key && Array.isArray(coordinatesArray) && coordinatesArray.length > 0){
-    const group = [];
-    coordinatesArray.forEach(({ lat, lng, shortCID }) => {
-      group.push(L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`));
-    });
-    band_layers[`Band${key}`] = L.layerGroup(group);
-  };
+  Object.entries(band_points).forEach(([key, coordinatesArray]) => {
+    if (key && Array.isArray(coordinatesArray) && coordinatesArray.length > 0){
+      const group = [];
+      coordinatesArray.forEach(({ lat, lng, shortCID }) => {
+        group.push(L.marker([lat,lng]).bindPopup(`<b>Band: ${key}<br>Cell: ${shortCID}`));
+      });
+      band_layers[`Band${key}`] = L.layerGroup(group);
+    };
 });
 
   const map = L.map(currentMapId, {
@@ -197,7 +197,7 @@ document.getElementById('requestTypeRadio').addEventListener('change', function(
       document.getElementById('first_eNode').required = (event.target.value !== 'bruteforce_file');
       document.getElementById('fileInputRow').style.display = (event.target.value == 'bruteforce_file') ? 'block' : 'none';
       document.getElementById('last_eNodeRow').style.display = (event.target.value == 'bruteforce') ? 'block' : 'none';
-
+      document.getElementById("greedySector").checked = (event.target.value == 'bruteforce_file' || event.target.value == 'bruteforce');
   }
 });
 
@@ -213,8 +213,8 @@ async function makeGeolocationRequest(event) {
   var checkboxes = document.querySelectorAll('input[name="band"]:checked');
   var radioType = document.querySelector('input[name="radioType"]:checked').value;
   var requestType = document.querySelector('input[name="requestType"]:checked').value;
-  var isGreedy = document.getElementById("brutforceType").checked;
-  console.log(isGreedy);
+  var isGreedySector = document.getElementById("greedySector").checked;
+  var isGreedyBand = document.getElementById("greedyBand").checked;
 
   var url = 'https://www.googleapis.com/geolocation/v1/geolocate?key=' + apiKey;
 
@@ -251,6 +251,7 @@ async function makeGeolocationRequest(event) {
         if (!shortCids[carriers[carrier]][band]){
           continue;
         }
+        let isBandFound = false;
 
         for (let shortCID of shortCids[carriers[carrier]][band]){
           try {
@@ -275,14 +276,18 @@ async function makeGeolocationRequest(event) {
             averageLocationMap += `${responseData.location.lat},${responseData.location.lng}/`
 
             //showResponseData(requestDiv, responseData, carrier, band, eNode, band, shortCID)
-			requestDiv.innerHTML += `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
-            if (isGreedy){
+			      requestDiv.innerHTML += `<div class="response-item ${bandClass[band]}">${eNode} | ${band} (${shortCID}) ${responseData.location.lat},${responseData.location.lng}</div>`;
+            isBandFound = true;
+            if (isGreedySector){
               break;
             }
             await sleep(500);
           } catch (error){
             console.log('Error:', error.message);
           }
+        }
+        if (isGreedyBand && isBandFound){
+          break;
         }
       }
     }  
@@ -410,15 +415,15 @@ async function makeGeolocationRequest(event) {
       });
       let averageSectorLocationPoint = average(AVG_sectors);
       let averageLocationPoint = average(AVG);
-	  console.log(averageLocationPoint, averageSectorLocationPoint);
-	  
-	  if(averageLocationPoint[0] !== averageSectorLocationPoint[0]){
-		  averageLocationPoint = averageSectorLocationPoint;
-	  };
+	    console.log(averageLocationPoint, averageSectorLocationPoint);
+      
+	    if(averageLocationPoint[0] !== averageSectorLocationPoint[0]){
+		    averageLocationPoint = averageSectorLocationPoint;
+	    };
       requestDiv.innerHTML += `<div class="response-item average"> Average Location: ${averageLocationPoint}`;
       requestDiv.innerHTML += `<div class="response-item average"><a href="${averageLocationMap}${averageLocationPoint}//" target="_blank">[GOOGLE]</a>   <a href="https:\/\/www.cellmapper.net\/map?MCC=255&MNC=${carrier}&type=LTE&latitude=${averageLocationPoint[0]}&longitude=${averageLocationPoint[1]}&zoom=15&showTowers=true&showIcons=false&showTowerLabels=true&tilesEnabled=true&showOrphans=true" target="_blank">[CM]</a></div>`;
 
-	  requestDiv.innerHTML += `<div class="map" id="${currentMapId}"></div>`;
+	    requestDiv.innerHTML += `<div class="map" id="${currentMapId}"></div>`;
 
       createMap(currentMapId, averageLocationPoint, band_points);
     }
@@ -443,14 +448,16 @@ async function makeGeolocationRequest(event) {
             if(responseData){
               showResponseData(requestDiv, responseData, carrier, band, currentNode, band, shortCID)
               isBandFound = true
-              break;
+              if(isGreedySector){
+                break;
+              }
             }
           } catch (error){
             console.log('Error:', error.message);
           }
         }
         await sleep(500);
-        if (isGreedy && isBandFound){
+        if (isGreedyBand && isBandFound){
           break;
         }
       }
@@ -483,14 +490,16 @@ async function makeGeolocationRequest(event) {
             if(responseData){
               showResponseData(requestDiv, responseData, carrier, band, currentNode, band, shortCID)
               isBandFound = true
-              break;
+              if(isGreedySector){
+                break;
+              }
             }
           } catch (error){
             console.log('Error:', error.message);
           }
         }
         await sleep(500);
-        if (isGreedy && isBandFound){
+        if (isGreedyBand && isBandFound){
           break;
         }
       }
