@@ -13,9 +13,11 @@ const shortCids = {
       '1': [11, 12, 13],
       '1+': [14, 15, 16],
       '3': [31, 32, 33, 34],
+      '3+': [35, 36, 37, 39],
       '7': [71, 72, 73, 74],
+      '7+': [75, 76, 77, 79],
       '8': [81, 82, 83],
-      '8+': [84, 85],
+      '8+': [84, 85, 86, 89],
       '38': [61, 62, 63, 65, 66, 67]
     },
     'ks': {
@@ -31,9 +33,28 @@ const shortCids = {
     }
   }
 function createMap(currentMapId, averageLocationPoint, band_points){
-    const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  });
+
+  const googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+  });
+
+  const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+  });
+
+  const googleHybrid  = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+  });
+
+  const ersi =  L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 20
   });
 
   const band_layers = {};
@@ -54,9 +75,17 @@ function createMap(currentMapId, averageLocationPoint, band_points){
     layers: [osm, ...Object.values(band_layers)]
   });
 
+  var baseMaps = {
+    "OpenStreetMap": osm,
+    "GoogleStreets": googleStreets,
+    "GoogleSat": googleSat,
+    "GoogleHybrid ": googleHybrid ,
+    "ESRI": ersi
+  }
+
   var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map).openPopup();
 
-  const layerControl = L.control.layers(null, band_layers).addTo(map).expand();
+  const layerControl = L.control.layers(baseMaps, band_layers).addTo(map).expand();
   
 }
 
