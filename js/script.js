@@ -29,9 +29,16 @@ const shortCids = {
       '7+': [44, 45, 46, 47],
       '8': [21, 22, 23],
       '8+': [24, 25, 26],
-      '40': [61, 62, 63, 64]
+      '40': [61, 62, 63, 64, 161, 162, 163, 164]
     }
   }
+const bingKey = 'QXVoaUNKSGxHemhnOTNJcVVIX29DcGxfLVpVcklFNlNQZnRseUdZVXZyOUFteDVuekEtV3FHY1BxdXlGWmw0TA=='
+
+function base64ToBytes(base64) {
+  const binString = atob(base64);
+  return Uint8Array.from(binString, (m) => m.codePointAt(0));
+}
+
 function createMap(currentMapId, averageLocationPoint, band_points){
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -41,21 +48,36 @@ function createMap(currentMapId, averageLocationPoint, band_points){
   const googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
     maxZoom: 20,
     subdomains:['mt0','mt1','mt2','mt3']
-  });
-
+  }); 
   const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
-        maxZoom: 20,
-        subdomains:['mt0','mt1','mt2','mt3']
+      maxZoom: 20,
+      subdomains:['mt0','mt1','mt2','mt3']
   });
 
   const googleHybrid  = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
-        maxZoom: 20,
-        subdomains:['mt0','mt1','mt2','mt3']
+      maxZoom: 20,
+      subdomains:['mt0','mt1','mt2','mt3']
   });
 
+  const Bing = L.tileLayer.bing(new TextDecoder().decode(base64ToBytes(bingKey)));
+  
   const ersi =  L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 20
+    maxZoom: 20,
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+
   });
+  
+  const ersi_WorldTopoMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 20,
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+  });
+  
+  const OpenTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+		attribution: 'Map data: &copy; <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    maxZoom: 15
+  });
+
+  
 
   const band_layers = {};
 
@@ -68,8 +90,12 @@ function createMap(currentMapId, averageLocationPoint, band_points){
       band_layers[`Band${key}`] = L.layerGroup(group);
     };
 });
-
+	console.log(band_layers);
   const map = L.map(currentMapId, {
+    fullscreenControl: true,
+    fullscreenControlOptions: {
+      position: 'topleft'
+    },
     center: averageLocationPoint,
     zoom: 13,
     layers: [osm, ...Object.values(band_layers)]
@@ -77,15 +103,18 @@ function createMap(currentMapId, averageLocationPoint, band_points){
 
   var baseMaps = {
     "OpenStreetMap": osm,
-    "GoogleStreets": googleStreets,
-    "GoogleSat": googleSat,
-    "GoogleHybrid ": googleHybrid ,
-    "ESRI": ersi
+    "Google street": googleStreets,
+    "Google Satellite": googleSat,
+    "Google Hybrid ": googleHybrid ,
+	  "Bing": Bing,
+    "ESRI": ersi,
+	  "ESRI Topo": ersi_WorldTopoMap,
+	  "OpenTopoMap": OpenTopoMap
   }
 
   var marker = L.marker(averageLocationPoint).bindPopup("<b>Center</b>").addTo(map).openPopup();
 
-  const layerControl = L.control.layers(baseMaps, band_layers).addTo(map).expand();
+  const layerControl = L.control.layers(baseMaps, band_layers,{collapsed: false}).addTo(map).expand();
   
 }
 
